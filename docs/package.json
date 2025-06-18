@@ -36,4 +36,9 @@
       "last 1 safari version"
     ]
   }
+  "homepage": "https://<your-username>.github.io/<repo-name>",
+"scripts": {
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d build"
+}
 }
