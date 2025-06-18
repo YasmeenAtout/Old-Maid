@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/Old-Maid/static/css/main.31b0fbbc.css",
+    "main.js": "/Old-Maid/static/js/main.7ab0bbd6.js",
+    "static/js/453.cdf365f0.chunk.js": "/Old-Maid/static/js/453.cdf365f0.chunk.js",
+    "static/media/back.png": "/Old-Maid/static/media/back.6846b94e29c50417a15b.png",
+    "static/media/bkgd.png": "/Old-Maid/static/media/bkgd.f4ac696a75163516cc0a.png",
+    "index.html": "/Old-Maid/index.html",
+    "main.31b0fbbc.css.map": "/Old-Maid/static/css/main.31b0fbbc.css.map",
+    "main.7ab0bbd6.js.map": "/Old-Maid/static/js/main.7ab0bbd6.js.map",
+    "453.cdf365f0.chunk.js.map": "/Old-Maid/static/js/453.cdf365f0.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.31b0fbbc.css",
+    "static/js/main.7ab0bbd6.js"
+  ]
+}
