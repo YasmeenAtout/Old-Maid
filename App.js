@@ -1,10 +1,7 @@
 import back from './images/back.png';
 import axios from 'axios';
-import React, {useState,useCallback} from 'react';
+import React, {useState, useEffect} from 'react';
 import './App.css';
-import { RotatingLines } from "react-loader-spinner";
-
-
 
 
 // to launch
@@ -17,7 +14,36 @@ var rem = 51;
 var deck_id ='';
 let rem1 = '';
 let rem2 = '';
-let win = "";
+let iteration = 0;
+const newMessage = ["Shuffling deck...", "Dealing Cards...","Loading  Deck..."];
+const sortMessages = ["Sorting Pairs...","Arranging Cards...", "Placing Deck..."];
+
+
+function Spinner({messages}) {
+  
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % messages.length);
+    }, 2000); 
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <div className="loading" style={{ textAlign: "center", marginTop: "1rem"}}>
+      <div className = "circle" style={{
+        border: "4px solid #866767",
+        borderTop: "4px solid #ffffff",
+        borderRadius: "50%",
+        width: "40px",
+        height: "40px",
+        animation: "spin 1s linear infinite"
+      }}/>
+    <p style={{ marginTop: "0.75rem", color: "#ffffff" }}>{messages[index]}</p>
+    </div>
+  );
+}
 
 
     
@@ -29,12 +55,15 @@ function App() {
     const [p2Pairs, setP2Pairs] = useState([]);
     const [p1Pairs, setP1Pairs] = useState([]);
     const [dataLoading, setDataLoading] = useState(false);
+    const [dataSortLoading, setDataSortLoading] = useState(false);
+    let [win, setWin] = useState("");
+
+    
 
     const newGame = async () => {
       
       await axios.get("https://deckofcardsapi.com/api/deck/new/shuffle/?cards=AS,AD,AC,AH,2S,2D,2C,2H,3S,3D,3C,3H,4S,4D,4C,4H,5S,5D,5C,5H,6S,6D,6C,6H,7S,7D,7C,7H,8S,8D,8C,8H,9S,9D,9C,9H,0S,0D,0C,0H,JS,JD,JC,JH,QS,QD,QC,KS,KD,KC,KH")
       .then(response => { 
-        console.log(response.data);
 
         deck_id = response.data.deck_id;
         
@@ -56,14 +85,21 @@ function App() {
       
       
       setDataLoading(true);
+      try{
       await newGame();
       await setPiles();
-      setDataLoading(false);
+      
+    //  await checkPairs("player1","player1Pairs"); //check pairs in player 1 (add to player1Pairs if yes)
+    //  await checkPairs("player2", "player2Pairs");
 
       await printOnScreen("player1");
       await printOnScreen("player1Pairs");
       await printOnScreen("player2");
       await printOnScreen("player2Pairs"); 
+      }catch(error){
+        console.error(error);
+      }
+      setDataLoading(false);
     }
 
    
@@ -84,14 +120,6 @@ function App() {
        await addToPile("player2", curr);
        
       }
-      await showPairs("player1");
-      await showPairs ("player2");
-
-      await checkPairs("player1", "player1Pairs");
-      await checkPairs("player2", "player2Pairs");
-
-      await showPairs("player1Pairs");
-      await showPairs ("player2Pairs");
 
       await setDataLoading(false);
 
@@ -122,7 +150,6 @@ function App() {
             
         ); }).catch(error=>{return error;});
 
-      console.log(freqMap);
 
       for (let key in freqMap) {
         let even = (freqMap[key] % 2) === 0;
@@ -157,7 +184,6 @@ function App() {
     const drawFromPile = async (pile,card,pairPile) =>{
         await axios.get(`https://deckofcardsapi.com/api/deck/${deck_id}/pile/${pile}/draw/?cards=${card}`)
         .catch(error=>{return error;});
-        console.log("added "+card+" to "+pairPile);
         await addToPile(pairPile, card);
     }
 
@@ -166,23 +192,15 @@ function App() {
       await axios.get(`https://deckofcardsapi.com/api/deck/${deck_id}/pile/${pile}/draw/random`)
       .then(responses=>{
         cd = responses.data.cards[0].code;
-        console.log("drawn from "+pile+" :" +cd+ " added to "+ targetPile);
       }).catch(error=>{return error;});
       await addToPile(targetPile, cd);
     }
 
-    const showPairs = async (pile) =>{
-      return axios.get(`https://deckofcardsapi.com/api/deck/${deck_id}/pile/${pile}/list/`)
-      .then(response => { 
-        console.log(response.data);
-      }).catch(error=>{return error;});
-      
-    }
+
 
     const drawCard = async() => {
       return axios.get(`https://deckofcardsapi.com/api/deck/${deck_id}/draw/?count=1`)
       .then(response => { 
-        console.log(response.data);
         currCode = response.data.cards[0].code;
         rem-=1;
         return currCode;
@@ -197,7 +215,6 @@ function App() {
         const arr = response.data.piles[pile].cards || [];
         
         const images = arr.map((card) => card.image); // extract image URLs
-        console.log(`Pile: ${pile}`, arr); 
 
         if (pile === "player1"){
           setP1Images([...images]);
@@ -211,10 +228,7 @@ function App() {
       }).catch(error=>{return error;});
       
     }
-    const delay = async (ms) => {
-      return new Promise((resolve) => 
-          setTimeout(resolve, ms));
-    };
+    
 
     const update = async() =>{
       await printOnScreen("player1"); 
@@ -232,50 +246,66 @@ function App() {
       await getRem("player2");
       
        
-        if (rem1 === 0 || rem2 === 0){
-          update();
-          
-          if (rem1 === 0){
-            win = "Player 1";
-          }else{
-            win = "Player 2";
-          }
-          console.log("The winner is "+ win);
+      if (rem1 === 0 || rem2 === 0){
+        update();
+        if (rem1 === 0){
+          setWin("Player 1");
         }else{
+          setWin("Player 2");
+        }
+        iteration = 0;
+      
+      }else{
           await drawRand("player2", "player1"); //pull from player 2 add to player 1 
           await update();
           
-        }
- 
-      return (
-       
-        <div>
-          <h2> The winner is {win}</h2>
-        </div>
-      );
-
-      
+      }
 
     }
 
     const pairs = async () =>{
+          
+          if (iteration === 0){
+            setDataSortLoading(true);
+            await checkPairs("player1","player1Pairs"); //check pairs in player 1 (add to player1Pairs if yes)
+            await checkPairs("player2", "player2Pairs");
+            iteration=1;
+            await update();
+            setDataSortLoading(false);
+            return;
+          }
+
           await checkPairs("player1","player1Pairs"); //check pairs in player 1 (add to player1Pairs if yes)
           await update();
           if (rem1 === 0 || rem2 === 0){
             update();
-            
             if (rem1 === 0){
-              win = "Player 1";
+              setWin("Player 1");
             }else{
-              win = "Player 2";
+              setWin("Player 2");
             }
-            console.log("The winner is "+ win);
+            iteration = 0;
           }else{
             await drawRand("player1", "player2");
             await update();
             await checkPairs("player2","player2Pairs");
             await update();
+            checkDone();
           }
+    }
+
+    const checkDone = async() =>{
+      if (rem1 === 0 || rem2 === 0){
+        update();
+        if (rem1 === 0){
+          setWin("Player 1");
+        }else{
+          setWin("Player 2");
+        }
+        iteration = 0;
+        return true;
+      }
+        return false;
     }
 
     const getRem = async (pile) =>{
@@ -296,16 +326,28 @@ function App() {
 
     <div>
       <div className="head">
-        
-        
-       
-
-       <ul>
+       <ul>      
+           <li className="strt">
+           <button onClick={gamePlay}>Start</button>
+           {dataLoading ? (<Spinner messages={newMessage}/>) : (
+            <body></body>
+          )}</li>
           
-           <li className="strt"> 
-           {dataLoading ? (<RotatingLines height={40} width={40} color="#3498db" />) : (<button onClick={gamePlay}> Start</button>)}</li>
-           <li><button onClick={drawFrom}> Draw</button></li> 
-           <li><button onClick={pairs}> Check Pairs </button></li>
+
+           <li><button onClick={drawFrom}> Draw</button>
+           {(win !== "") ? (<div className = "winner">
+              <h2> The winner is {win}!</h2>
+              </div>
+             
+            ):(<body></body>)}</li>
+
+           <li><button onClick={pairs}> Check Pairs </button>{dataSortLoading ? (<Spinner messages={sortMessages}/>) : (
+            <body></body>
+          )}
+           {(win !== "") ? ( <div className = "winner">
+           <h2> The winner is {win}!</h2>
+          
+            </div>):(<body></body>)}</li>
            
            <li className="maid"> Old Maid </li>
            <li> <button onClick={() => window.location.reload(false)}>Reload</button></li>
@@ -317,22 +359,16 @@ function App() {
               </div>
             </span></li>
 
-           <li><h2 className="bgin">Press START to begin game</h2></li>
+           <li><h2 className="bgin">Press START to begin game, then CHECK PAIRS to sort initially</h2></li>
            <li><h4 className="bgin"> You are Player 1</h4></li>
+           <li><h4 className="bgin"> Check Pairs must be performed in order for Player 2 to take its turn</h4></li>
 
            
        </ul>
       </div>
-      
-      
-       
-     
-       
-       
-       <div className="flex-container" >
 
-            
-       
+       <div className="flex-container" >
+    
           </div>
           
           
